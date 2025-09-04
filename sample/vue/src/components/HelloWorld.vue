@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { Atom, useAtomSet, useAtomValue } from "@effect-atom/atom-vue"
+import { Atom, Registry, useAtomSet, useAtomValue } from "@effect-atom/atom-vue"
 import { onUnmounted, ref } from "vue"
 import { TestClient } from "../fixtures/TestClient";
-import { Exit } from "effect";
+import { Effect, Exit } from "effect";
+import { AtomRegistry, getResult } from "@effect-atom/atom/Registry";
 
 defineProps<{ msg: string }>()
 
@@ -10,12 +11,19 @@ const count = ref(0)
 
 const req = ref({ echo: "Hello World" })
 
+
 const result = useAtomValue(() => {
   console.log("Computing Atom:", req.value)
   return Atom.refreshOnWindowFocus(TestClient.query("Get", req.value, { reactivityKeys: ["Get"]}))
 })
 
-const set = useAtomSet(() => TestClient.mutation("Set"), { mode: "promiseExit" })
+const Set = Atom.writable((get) => get(TestClient.mutation("Set")), (ctx) => {
+  //alert("before")
+  const atom = TestClient.mutation("Set")
+  ctx.set(atom, { payload: { state: "initial" }, reactivityKeys: ["Get"] })
+  //alert("after")
+})
+const set = useAtomSet(() => Set, { mode: "promiseExit" })
 
 const intervalEnabled = ref(false)
 
