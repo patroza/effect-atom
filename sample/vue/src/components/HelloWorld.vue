@@ -1,14 +1,61 @@
 <script setup lang="ts">
-import { Atom, useAtomSet, useAtomValue } from "@effect-atom/atom-vue"
-import { onUnmounted, ref } from "vue"
+import { Atom, useAtom, useAtomSet, useAtomValue } from "@effect-atom/atom-vue"
+import { onMounted, onUnmounted, ref, watch } from "vue"
 import { TestClient } from "../fixtures/TestClient";
-import { Exit } from "effect";
+import { Effect, Exit } from "effect";
 
 defineProps<{ msg: string }>()
 
 const count = ref(0)
 
 const req = ref({ echo: "Hello World" })
+
+let i = 0
+
+const atom = Atom.fn((req: string) => Effect.gen(function* () {
+  yield* Effect.sleep(1_000)
+  return { i: i++, d: new Date().toISOString() }
+}), { concurrent: true})
+
+// const atom2 = Atom.fn((req: string, get) => Effect.gen(function* () {
+//   get.set(atom, req)
+// }), { concurrent: true})
+// const atom3 = Atom.fn((req: string, get) => Effect.gen(function* () {
+//   get.set(atom, req)
+// }), { concurrent: true})
+
+const atom4 = Atom.writable(
+  (get) => get(atom), // Initial value for the writable
+  (get) => {
+    // set(countAtom, update); // This would update countAtom directly
+    // Or to be safer, you can use a derived atom
+    get.set(atom, "new"); // This will wait for the derived atom to update
+  }
+);
+
+const atom5 = Atom.writable(
+  (get) => get(atom), // Initial value for the writable
+  (get) => {
+    // set(countAtom, update); // This would update countAtom directly
+    // Or to be safer, you can use a derived atom
+    get.set(atom, "new2"); // This will wait for the derived atom to update
+  }
+);
+
+const [getAtom, setAtom] = useAtom(() => atom)
+const [getAtom4, setAtom4] = useAtom(() => atom4)
+const [getAtom5, setAtom5] = useAtom(() => atom5)
+
+watch(getAtom, (newVal) => {
+  console.log("Atom changed:", newVal);
+});
+watch(getAtom4, (newVal) => {
+  console.log("Atom4 changed:", newVal);
+});
+watch(getAtom5, (newVal) => {
+  console.log("Atom5 changed:", newVal);
+});
+onMounted(() => { setAtom("test"); setTimeout(() => setAtom5("test"), 5_000)  })
 
 const result = useAtomValue(() => {
   console.log("Computing Atom:", req.value)
@@ -48,6 +95,7 @@ onUnmounted(() => clearInterval(interval))
   <button @click="intervalEnabled = !intervalEnabled">
     Toggle interval {{ !intervalEnabled ? "ON" : "OFF" }}
   </button>
+
 
   <div class="card">
     <button type="button" @click="count++">count is {{ count }}</button>
