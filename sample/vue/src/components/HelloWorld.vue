@@ -12,10 +12,15 @@ const req = ref({ echo: "Hello World" })
 
 let i = 0
 
+// TODO: tackle side effects
+// - close a dialog after successful mutation
+// - navigate to another page after successful mutation
+//   how to include this as part of the mutation tracing span?
+
 const atom = Atom.fn((req: string) => Effect.gen(function* () {
   yield* Effect.sleep(1_000)
   return { i: i++, d: new Date().toISOString() }
-}), { concurrent: true})
+}))
 
 // const atom2 = Atom.fn((req: string, get) => Effect.gen(function* () {
 //   get.set(atom, req)
